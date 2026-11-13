@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#121212">
+  <title>Mi Radio</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #121212;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      overflow: hidden;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 380px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 28px;
+    }
+
+    /* Portada */
+    .cover {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+      background: #1e1e1e;
+      position: relative;
+    }
+
+    .cover img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Título */
+    .info {
+      text-align: center;
+      width: 100%;
+    }
+
+    .info h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 4px;
+    }
+
+    .info p {
+      font-size: 0.9rem;
+      color: #b3b3b3;
+      font-weight: 400;
+    }
+
+    /* Botón play */
+    .play-btn {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: #1db954;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.15s ease, background 0.2s ease;
+      box-shadow: 0 8px 30px rgba(29, 185, 84, 0.4);
+    }
+
+    .play-btn:active {
+      transform: scale(0.93);
+    }
+
+    .play-btn.playing {
+      background: #1ed760;
+    }
+
+    .play-btn svg {
+      width: 34px;
+      height: 34px;
+      fill: #000;
+    }
+
+    /* Estado */
+    .status {
+      font-size: 0.8rem;
+      color: #b3b3b3;
+      text-align: center;
+      min-height: 1.2em;
+      transition: color 0.2s;
+    }
+
+    .status.live {
+      color: #1db954;
+    }
+
+    .status.live::before {
+      content: "● ";
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* Espaciado inferior para safe area en móvil */
+    @supports (padding-bottom: env(safe-area-inset-bottom)) {
+      body {
+        padding-bottom: calc(24px + env(safe-area-inset-bottom));
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Portada -->
+    <div class="cover">
+      <img src="https://via.placeholder.com/600x600/1e1e1e/ffffff?text=Mi+Radio" alt="Portada de Mi Radio" id="cover">
+    </div>
+
+    <!-- Título -->
+    <div class="info">
+      <h1>Mi Radio</h1>
+      <p>En vivo 24/7</p>
+    </div>
+
+    <!-- Botón Play -->
+    <button class="play-btn" id="playBtn" aria-label="Reproducir">
+      <svg id="playIcon" viewBox="0 0 24 24">
+        <path d="M8 5v14l11-7z"/>
+      </svg>
+    </button>
+
+    <!-- Estado -->
+    <div class="status" id="status">Toca para escuchar</div>
+  </div>
+
+  <audio id="audio" preload="none">
+    <!-- REEMPLAZA ESTA URL POR TU STREAM -->
+    <source src="https://uk2freenew.listen2myradio.com/live.mp3?typeportmount=s1_12235_stream_139699947" type="audio/mpeg">
+  </audio>
+
+  <script>
+    const audio = document.getElementById('audio');
+    const playBtn = document.getElementById('playBtn');
+    const playIcon = document.getElementById('playIcon');
+    const status = document.getElementById('status');
+
+    const playPath = 'M8 5v14l11-7z';
+    const pausePath = 'M6 19h4V5H6v14zm8-14v14h4V5h-4z';
+
+    let isLoading = false;
+
+    playBtn.addEventListener('click', () => {
+      if (isLoading) return;
+
+      if (audio.paused) {
+        isLoading = true;
+        status.textContent = 'Conectando...';
+        status.classList.remove('live');
+
+        audio.load();
+        audio.play()
+          .then(() => {
+            isLoading = false;
+          })
+          .catch(() => {
+            isLoading = false;
+            status.textContent = 'No se pudo conectar. Intenta de nuevo.';
+            status.classList.remove('live');
+          });
+      } else {
+        audio.pause();
+        audio.src = '';
+        playIcon.setAttribute('d', playPath);
+        playBtn.classList.remove('playing');
+        status.textContent = 'Toca para escuchar';
+        status.classList.remove('live');
+      }
+    });
+
+    audio.addEventListener('playing', () => {
+      isLoading = false;
+      playIcon.setAttribute('d', pausePath);
+      playBtn.classList.add('playing');
+      status.textContent = 'EN VIVO';
+      status.classList.add('live');
+    });
+
+    audio.addEventListener('waiting', () => {
+      status.textContent = 'Cargando...';
+      status.classList.remove('live');
+    });
+
+    audio.addEventListener('pause', () => {
+      if (!isLoading) {
+        playIcon.setAttribute('d', playPath);
+        playBtn.classList.remove('playing');
+        status.textContent = 'Toca para escuchar';
+        status.classList.remove('live');
+      }
+    });
+
+    audio.addEventListener('error', () => {
+      isLoading = false;
+      status.textContent = 'Señal no disponible.';
+      status.classList.remove('live');
+      playIcon.setAttribute('d', playPath);
+      playBtn.classList.remove('playing');
+    });
+  </script>
+</body>
+</html>
